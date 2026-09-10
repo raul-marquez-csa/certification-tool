@@ -51,7 +51,7 @@ WSL_SYNC_TABLE=(
     "scripts/ubuntu/internal-auto-install.sh ed02e20acdea"
     "scripts/ubuntu/2-machine-cofiguration.sh 5bbde6ff3d47"
     "scripts/update.sh 3f3a7e10f134"
-    "scripts/update-docker-images.sh 1d546ff464bf"
+    "scripts/update-docker-images.sh 7d35d00bf1e4"
 )
 
 check_wsl_scripts_sync()

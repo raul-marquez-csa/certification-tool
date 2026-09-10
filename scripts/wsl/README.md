@@ -44,10 +44,7 @@ Notes on the run:
   registry publishes the pinned SDK image for the host architecture (arm64
   only at the time of writing), in which case the image is pulled.
 - The backend and frontend images build from the submodules (slower than the
-  download, no other impact). Known build issues in the pinned submodules are
-  patched automatically at build time, with a notice (currently one: an npm
-  pin in backends that predate the nodejs/npm removal of
-  [certification-tool-backend#341](https://github.com/project-chip/certification-tool-backend/pull/341)).
+  download, no other impact).
 - No reboot or relogin: the install runs start to finish in one shell.
 - If the run stops at the SDK image build (see Troubleshooting), finish the
   remaining steps manually once it builds: `./scripts/wsl/update.sh`, then

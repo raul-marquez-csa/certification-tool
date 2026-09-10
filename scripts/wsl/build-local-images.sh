@@ -65,25 +65,10 @@ END
 }
 
 print_script_step "Building backend Docker image locally"
-# The backend Dockerfile installed npm@latest until certification-tool-backend
-# PR 341 removed the nodejs/npm install entirely, and npm 12 dropped support
-# for the image's node version. While the pinned backend predates that
-# removal, pin npm at build time and restore the file afterwards.
-NPM_PATCHED=false
-if grep -q "npm install -g npm@latest" "$ROOT_DIR/backend/Dockerfile"; then
-    print_script_step "Patching known npm issue in the backend Dockerfile"
-    echo "The pinned backend installs npm@latest, which no longer supports the image's"
-    echo "node version. Pinning npm for this build (newer backends no longer install npm)."
-    sed -i "s/npm install -g npm@latest/npm install -g npm@11/" "$ROOT_DIR/backend/Dockerfile"
-    NPM_PATCHED=true
-fi
 newgrp docker << END
     $ROOT_DIR/backend/scripts/build-docker-image.sh
 END
 retag_to_compose_pin backend
-if $NPM_PATCHED; then
-    git -C "$ROOT_DIR/backend" checkout -- Dockerfile
-fi
 
 print_script_step "Building frontend Docker image locally"
 newgrp docker << END
