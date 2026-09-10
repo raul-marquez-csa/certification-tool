@@ -16,7 +16,9 @@ that cannot work:
 - The machine configuration runs without the wpa_supplicant setup and the
   wlan sysctl entries (WSL has no wlan interface).
 - The backend, frontend, and SDK docker images are built locally (the
-  published images are arm64 only).
+  published images are arm64 only). The SDK image step first checks the
+  registry and pulls the published image instead when one exists for the host
+  architecture.
 - The final reboot is dropped: the setup finishes and starts the Test Harness
   in one run.
 
@@ -38,7 +40,9 @@ up and reachable at http://localhost/ (WSL2 forwards localhost by default):
 Notes on the run:
 
 - The run takes on the order of 1.5 hours, dominated by the SDK image
-  (`connectedhomeip/chip-cert-bins`) compile.
+  (`connectedhomeip/chip-cert-bins`) compile. That compile is skipped when the
+  registry publishes the pinned SDK image for the host architecture (arm64
+  only at the time of writing), in which case the image is pulled.
 - The backend and frontend images build from the submodules (slower than the
   download, no other impact). Known build issues in the pinned submodules are
   patched automatically at build time, with a notice (currently one: an npm

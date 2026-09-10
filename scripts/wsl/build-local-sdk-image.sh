@@ -15,9 +15,10 @@
  # See the License for the specific language governing permissions and
  # limitations under the License.
 
-# Builds the SDK image (chip-cert-bins) locally for the host architecture,
-# tagged exactly as the backend expects. Needed on non-arm64 hosts (e.g. WSL),
-# where the published image is not available.
+# Provides the SDK image (chip-cert-bins) for the host architecture, tagged
+# exactly as the backend expects: pulls the published image when the registry
+# has one for the host architecture, otherwise builds it locally. Needed on
+# non-arm64 hosts (e.g. WSL), where the published image is arm64 only today.
 #
 # Usage: build-local-sdk-image.sh [dockerfile_ref]
 #   dockerfile_ref  Optional git ref of the connectedhomeip repo to fetch the
@@ -72,6 +73,39 @@ if [[ -n $(sudo docker images -q $SDK_DOCKER_IMAGE) ]]; then
     print_script_step "Existing image has the wrong architecture"
     echo "The SDK image exists locally but is $IMAGE_ARCH while the host needs"
     echo "$HOST_DOCKER_ARCH. Rebuilding it for the host architecture."
+fi
+
+# Pull the published image if the registry has one for the host architecture,
+# otherwise build it locally.
+print_script_step "Checking the registry for a published $HOST_DOCKER_ARCH image"
+PUBLISHED_ARCHS=$(sudo docker manifest inspect -v "$SDK_DOCKER_IMAGE" 2>/dev/null | python3 -c '
+import json
+import sys
+
+try:
+    manifests = json.load(sys.stdin)
+except ValueError:
+    sys.exit(0)
+if not isinstance(manifests, list):
+    manifests = [manifests]
+archs = {m.get("Descriptor", {}).get("platform", {}).get("architecture") for m in manifests}
+print(" ".join(sorted(a for a in archs if a and a != "unknown")))
+')
+if [[ " $PUBLISHED_ARCHS " == *" $HOST_DOCKER_ARCH "* ]]; then
+    echo "The registry publishes '$SDK_DOCKER_IMAGE' for $HOST_DOCKER_ARCH: pulling it instead of building."
+    if sudo docker pull --platform "linux/$HOST_DOCKER_ARCH" "$SDK_DOCKER_IMAGE"; then
+        print_script_step "Success"
+        sudo docker images $SDK_DOCKER_IMAGE --format "Pulled {{.Repository}}:{{.Tag}} ({{.Size}})"
+        print_end_of_script
+        exit 0
+    fi
+    echo "The pull failed: falling back to the local build."
+elif [[ -n "$PUBLISHED_ARCHS" ]]; then
+    echo "The registry publishes '$SDK_DOCKER_IMAGE' for: $PUBLISHED_ARCHS (not $HOST_DOCKER_ARCH)."
+    echo "Building it locally."
+else
+    echo "Could not read the manifest of '$SDK_DOCKER_IMAGE' (not published, or no network)."
+    echo "Building it locally."
 fi
 
 BUILD_DIR=$(mktemp -d)

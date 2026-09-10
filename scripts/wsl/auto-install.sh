@@ -20,7 +20,8 @@
 # unmodified wherever they work on WSL and substituting the steps that do not:
 # the machine configuration (no wlan interface or wpa_supplicant in WSL), the
 # docker images step (the published images are arm64 only, so they are built
-# locally), and the final reboot (logging out is enough on WSL).
+# locally; the SDK image is pulled instead once the registry publishes it for
+# the host architecture), and the final reboot (logging out is enough on WSL).
 #
 # The SDK image build (about an hour) and the test collections setup that
 # depends on it are deferred: this script ends with the two commands to run.
@@ -101,12 +102,13 @@ print_script_step "Applying configuration changes (WSL, no reboot required)"
 sudo sysctl -p || true
 sudo modprobe ip6table_filter 2>/dev/null || echo "ip6table_filter module not available in the WSL kernel"
 
-# The SDK image is published for arm64 only, so it must be built locally
-# before the test collections setup, which installs the sample apps from it.
-# If the build fails, follow the printed guidance and finish the setup with
-# scripts/wsl/build-local-sdk-image.sh and scripts/wsl/update.sh (see
-# README.md).
-print_script_step "Building the SDK image locally (takes about an hour)"
+# The SDK image is needed before the test collections setup, which installs
+# the sample apps from it. The script pulls the published image when the
+# registry has one for the host architecture and builds it locally otherwise
+# (today it is published for arm64 only). If the build fails, follow the
+# printed guidance and finish the setup with scripts/wsl/build-local-sdk-image.sh
+# and scripts/wsl/update.sh (see README.md).
+print_script_step "Providing the SDK image (pulled if published for this architecture, else built locally in about an hour)"
 "$WSL_SCRIPT_DIR/build-local-sdk-image.sh"
 verify_return_code
 
